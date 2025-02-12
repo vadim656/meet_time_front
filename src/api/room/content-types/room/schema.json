@@ -1,0 +1,55 @@
+{
+  "kind": "collectionType",
+  "collectionName": "rooms",
+  "info": {
+    "singularName": "room",
+    "pluralName": "rooms",
+    "displayName": "Room",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Name": {
+      "type": "string"
+    },
+    "Date": {
+      "type": "datetime"
+    },
+    "clients": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::client.client",
+      "mappedBy": "room"
+    },
+    "Pin": {
+      "type": "string"
+    },
+    "Active": {
+      "type": "boolean",
+      "default": false
+    },
+    "Limit": {
+      "type": "integer",
+      "default": 1
+    },
+    "Active_chat": {
+      "type": "boolean",
+      "default": true
+    },
+    "mentors": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "rooms"
+    },
+    "admin_room": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "my_rooms"
+    }
+  }
+}
