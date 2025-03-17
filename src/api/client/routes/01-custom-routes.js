@@ -7,6 +7,14 @@ module.exports = {
             config: {
                 auth: false,
             },
+        },
+        {
+            method: 'POST',
+            path: '/client/register',
+            handler: 'client.customRegister',
+            config: {
+                auth: false,
+            },
         }
     ]
 }

@@ -1,6 +1,14 @@
 'use strict';
 
 const fs = require("node:fs");
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const urlJoin = require('url-join');
+const getService = (name) => {
+    return strapi.plugin('users-permissions').service(name);
+};
+const { sanitize } = require('@strapi/utils');
+const USER_MODEL_UID = 'plugin::users-permissions.user';
 module.exports = {
     /**
      * An asynchronous register function that runs before
@@ -8,12 +16,72 @@ module.exports = {
      *
      * This gives you an opportunity to extend code.
      */
-    register({strapi}) {
-        // strapi.service('plugin::users-permissions.user').fetchAuthenticatedUser = (id) => {
-        //     return strapi
-        //         .query('plugin::users-permissions.user')
-        //         .findOne({where: {id}, populate: ['Type', 'Name']})
-        // }
+    register({ strapi }) {
+        strapi.plugins["users-permissions"].services["user"].sendConfirmationEmail = async (user) => {
+            const userPermissionService = getService('users-permissions');
+            const pluginStore = await strapi.store({ type: 'plugin', name: 'users-permissions' });
+            const userSchema = strapi.getModel(USER_MODEL_UID);
+
+            const settings = await pluginStore
+                .get({ key: 'email' })
+                .then((storeEmail) => storeEmail.email_confirmation.options);
+
+            // Sanitize the template's user information
+            const sanitizedUserInfo = await sanitize.sanitizers.defaultSanitizeOutput(
+                {
+                    schema: userSchema,
+                    getModel: strapi.getModel.bind(strapi),
+                },
+                user
+            );
+
+            const confirmationToken = Math.floor(100000 + (crypto.randomBytes(4).readUInt32LE(0) % 900000));
+            console.log('confirmationToken -> ', confirmationToken);
+
+
+            await getService('user').edit(user.id, { confirmationToken });
+
+            const apiPrefix = strapi.config.get('api.rest.prefix');
+
+            try {
+                settings.message = await userPermissionService.template(settings.message, {
+                    URL: urlJoin(
+                        strapi.config.get('server.absoluteUrl'),
+                        apiPrefix,
+                        '/auth/email-confirmation'
+                    ),
+                    SERVER_URL: strapi.config.get('server.absoluteUrl'),
+                    ADMIN_URL: strapi.config.get('admin.absoluteUrl'),
+                    USER: sanitizedUserInfo,
+                    CODE: confirmationToken,
+                });
+
+                settings.object = await userPermissionService.template(settings.object, {
+                    USER: sanitizedUserInfo,
+                });
+            } catch {
+                strapi.log.error(
+                    '[plugin::users-permissions.sendConfirmationEmail]: Failed to generate a template for "user confirmation email". Please make sure your email template is valid and does not contain invalid characters or patterns'
+                );
+                return;
+            }
+
+            // Send an email to the user.
+            await strapi
+                .plugin('email')
+                .service('email')
+                .send({
+                    to: user.email,
+                    from:
+                        settings.from.email && settings.from.name
+                            ? `${settings.from.name} <${settings.from.email}>`
+                            : undefined,
+                    replyTo: settings.response_email,
+                    subject: settings.object,
+                    text: settings.message,
+                    html: settings.message,
+                });
+        }
     },
 
     /**
@@ -26,7 +94,7 @@ module.exports = {
     bootstrap(/*{ strapi }*/) {
 
 
-        const {Server} = require("socket.io");
+        const { Server } = require("socket.io");
 
         const io = new Server({
             cors: true
@@ -38,15 +106,15 @@ module.exports = {
         io.on("connection", (socket) => {
             console.log(`Socket Connected`, socket.id);
             socket.on("room:join", (data) => {
-                const {email, room} = data;
+                const { email, room } = data;
                 emailToSocketIdMap.set(email, socket.id);
                 socketidToEmailMap.set(socket.id, email);
-                io.to(room).emit("user:joined", {email, id: socket.id});
+                io.to(room).emit("user:joined", { email, id: socket.id });
                 socket.join(room);
                 io.to(socket.id).emit("room:join", data);
             });
 
-            socket.on("user:call", ({to, offer}) => {
+            socket.on("user:call", ({ to, offer }) => {
                 console.log("user:call", to, offer)
                 io.to(to).emit("incomming:call", {
                     from: socket.id,
@@ -54,25 +122,25 @@ module.exports = {
                 });
             });
 
-            socket.on("call:accepted", ({to, ans}) => {
-                io.to(to).emit("call:accepted", {from: socket.id, ans});
+            socket.on("call:accepted", ({ to, ans }) => {
+                io.to(to).emit("call:accepted", { from: socket.id, ans });
             });
 
-            socket.on("peer:nego:needed", ({to, offer}) => {
+            socket.on("peer:nego:needed", ({ to, offer }) => {
                 // console.log("peer:nego:needed", offer);
-                io.to(to).emit("peer:nego:needed", {from: socket.id, offer});
+                io.to(to).emit("peer:nego:needed", { from: socket.id, offer });
             });
 
-            socket.on("peer:nego:done", ({to, ans}) => {
+            socket.on("peer:nego:done", ({ to, ans }) => {
                 // console.log("peer:nego:done", ans);
-                io.to(to).emit("peer:nego:final", {from: socket.id, ans});
+                io.to(to).emit("peer:nego:final", { from: socket.id, ans });
             });
         });
 
         io.listen(8090);
 
 
-        const {PeerServer} = require("peer");
+        const { PeerServer } = require("peer");
 
         const peerServer = PeerServer({
             port: 9000,
