@@ -26,6 +26,10 @@ services:
     ports:
       - "1337:1337"
       - "9102:9102"
+    networks:
+        - strapi_meet
+    depends_on:
+      - meetDB  
 
   meetDB:
     container_name: meetDB
@@ -46,5 +50,5 @@ services:
 volumes:
   strapi-data2:
 networks:
-  strapi:
+  strapi_meet:
     driver: bridge    
