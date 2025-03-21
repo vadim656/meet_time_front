@@ -26,3 +26,25 @@ services:
     ports:
       - "1337:1337"
       - "9102:9102"
+
+  meetDB:
+    container_name: meetDB
+    restart: unless-stopped
+    env_file: .env
+    image: postgres:14.0-alpine
+    environment:
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+      POSTGRES_DB: ${DATABASE_NAME}
+    volumes:
+      - strapi-data2:/var/lib/postgresql/data/
+    ports:
+     - '127.0.0.1:5456:5432'
+    networks:
+      - strapi
+      
+volumes:
+  strapi-data2:
+networks:
+  strapi:
+    driver: bridge    
