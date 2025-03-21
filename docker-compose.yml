@@ -1,7 +1,8 @@
 services:
   strapi:
-    container_name: strapi
+    container_name: meet_back
     build: .
+    user: 1000:1000
     image: strapi:latest
     restart: unless-stopped
     env_file: .env
