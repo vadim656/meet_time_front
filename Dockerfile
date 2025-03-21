@@ -25,13 +25,7 @@ COPY --from=builder /opt/app/node_modules ./node_modules
 COPY . .
 
 # Установка прав доступа
-RUN chown -R node:node /opt/app
-
-# Переключение на пользователя node
 USER node
-
-# Открытие порта
+RUN yarn build
 EXPOSE 1337
-
-# Команда для запуска приложения
 CMD ["yarn", "start"]
