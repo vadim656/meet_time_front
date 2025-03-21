@@ -437,6 +437,10 @@ export interface ApiRoomRoom extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    users: Schema.Attribute.Relation<
+      'manyToMany',
+      'plugin::users-permissions.user'
+    >;
   };
 }
 
@@ -929,6 +933,7 @@ export interface PluginUsersPermissionsUser
       'plugin::users-permissions.role'
     >;
     rooms: Schema.Attribute.Relation<'manyToMany', 'api::room.room'>;
+    rooms_active: Schema.Attribute.Relation<'manyToMany', 'api::room.room'>;
     Type: Schema.Attribute.Enumeration<['User', 'Admin']> &
       Schema.Attribute.DefaultTo<'User'>;
     updatedAt: Schema.Attribute.DateTime;

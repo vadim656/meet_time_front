@@ -4,10 +4,12 @@ const fs = require("node:fs");
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const urlJoin = require('url-join');
+const rpcMethods = require("./utils/RPCmethods");
 const getService = (name) => {
     return strapi.plugin('users-permissions').service(name);
 };
 const { sanitize } = require('@strapi/utils');
+const { v4: uuidv4 } = require("uuid");
 const USER_MODEL_UID = 'plugin::users-permissions.user';
 module.exports = {
     /**
@@ -92,7 +94,7 @@ module.exports = {
      * run jobs, or perform some special logic.
      */
     bootstrap(/*{ strapi }*/) {
-
+        const WebSocket = require("ws");
 
         const { Server } = require("socket.io");
 
@@ -158,6 +160,73 @@ module.exports = {
 
         peerServer.on('disconnect', (client) => {
             console.log("peerServer disconnect -> ", client.id);
+        });
+
+
+        //ws
+
+        const clients = new Set();
+
+        const wss = new WebSocket.Server({ port: 9102 })
+
+        const isValidJSON = (str) => {
+            try {
+                JSON.parse(str);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        async function blockUser(id) {
+            console.log('user 1 -> ', id);
+            const user = await getService('user').edit(id, {
+                blocked: true
+            });
+            clients.forEach((socket) => {
+                socket.send(rpcMethods("user_blocked", user.id, ""));
+            });
+            console.log('user -> ', user);
+
+        }
+
+        wss.on("connection", function connection(ws) {
+            ws.isAlive = true;
+            ws.id = uuidv4();
+
+            clients.add(ws);
+
+            ws.on("message", (message) => {
+                if (message !== undefined && isValidJSON(message)) {
+                    const messData = JSON.parse(message);
+                    if (messData?.method === 'blockUser') {
+                        console.log('tut 1');
+                        blockUser(messData.params.id);
+
+                    } else {
+                        console.log('tut');
+
+                    }
+                    console.log('message 2', messData);
+
+
+                } else {
+                    console.log("connect fails");
+                }
+            });
+            ws.on("error", console.error);
+            ws.on("close", (event) => {
+                if (event?.wasClean) {
+                    console.log(
+                        "Соединение закрыто чисто, код:",
+                        event.code,
+                        "причина:",
+                        event.reason,
+                    );
+                } else {
+                    console.log("Обрыв соединения");
+                }
+            });
         });
 
     },

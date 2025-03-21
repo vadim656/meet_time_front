@@ -87,6 +87,12 @@
       "relation": "oneToMany",
       "target": "api::room.room",
       "mappedBy": "admin_room"
+    },
+    "rooms_active": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::room.room",
+      "mappedBy": "users"
     }
   }
 }
