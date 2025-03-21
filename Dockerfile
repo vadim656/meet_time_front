@@ -7,17 +7,17 @@ ENV NODE_ENV=${NODE_ENV}
 
 WORKDIR /opt/
 RUN chown  node:node /opt
-COPY package.json yarn.lock ./
-RUN yarn global add node-gyp
-RUN yarn config set network-timeout 600000 -g
+COPY ./package.json ./yarn.lock ./
 ENV PATH=/opt/node_modules/.bin:$PATH
+RUN yarn config set network-timeout 600000 -g
+
 USER node
 RUN yarn install
 
 FROM node:20.18-slim
 
 WORKDIR /opt/app
-COPY . .
+COPY ./ .
 RUN chown -R node:node /opt/app
 USER node
 EXPOSE 1337
