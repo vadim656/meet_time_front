@@ -1,5 +1,4 @@
 FROM node:20.18-slim
-# Installing libvips-dev for sharp Compatibility
 RUN apt-get update
 ARG NODE_ENV=development
 ENV NODE_ENV=${NODE_ENV}
@@ -13,8 +12,6 @@ RUN yarn install
 RUN mkdir /opt/app
 WORKDIR /opt/app
 COPY ./ .
-# USER root
-# RUN chown -R node:node /opt/app/.strapi
 USER node
 RUN yarn build
 EXPOSE 1337
