@@ -10,12 +10,11 @@ module.exports = () => ({
           user: 'info@timeproperty.ru',
           pass: 'xZ9p2DIL',
         },
-        // ... any custom nodemailer options
       },
-      settings: {
-        defaultFrom: 'info@timeproperty.ru',
-        defaultReplyTo: 'info@timeproperty.ru',
-      },
+      // settings: {
+      //   defaultFrom: 'info@timeproperty.ru',
+      //   defaultReplyTo: 'info@timeproperty.ru',
+      // },
     },
   },
   "users-permissions": {
